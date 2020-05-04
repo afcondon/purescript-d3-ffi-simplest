@@ -2,11 +2,17 @@
 
 var rootGUP
 var svgGUP
+var alphabet = 'abcdefghijklmnopqrstuvwxyz'
+var widthGUP = 960
+var heightGUP = 480
+
+
 var rootChart
 var svgChart
-var width = 960
-var height = 480
-var alphabet = 'abcdefghijklmnopqrstuvwxyz'
+var color = "steelblue"
+var margin = ({top: 30, right: 0, bottom: 30, left: 40})
+var widthChart = 960
+var heightChart = 480
 
 // ============================ Purescript FFI functions are the only exports ===================================
 exports.initGUP = function (DOMroot) {
@@ -14,8 +20,8 @@ exports.initGUP = function (DOMroot) {
 
   svgGUP = rootGUP
     .append('svg')
-    .attr('width', width)
-    .attr('height', height)
+    .attr('width', widthGUP)
+    .attr('height', heightGUP)
     .append('g')
     .attr('transform', 'translate(32,100)')
 
@@ -29,7 +35,7 @@ exports.updateGUP = function (ignored) {
 exports.initChart = function (DOMroot) {
   rootChart = d3.select(DOMroot)
 
-  svgChart = rootChart.attr('width', width).attr('height', height)
+  svgChart = rootChart.append('svg').attr("viewBox", [0, 0, widthChart, heightChart])
 }
 
 exports.drawChart = function (data) {
@@ -39,6 +45,31 @@ exports.drawChart = function (data) {
 // ============================ JS implementation of the chart example  ===================================
 
 var drawChartJS = function (data) {
+  var x = d3.scaleBand()
+      .domain(d3.range(data.length))
+      .range([margin.left, widthChart - margin.right])
+      .padding(0.1)
+
+  var y = d3.scaleLinear()
+        .domain([0, d3.max(data, d => d.value)]).nice()
+        .range([heightChart - margin.bottom, margin.top])
+
+  var xAxis = g => g.attr('transform', `translate(0,${heightChart - margin.bottom})`).call(
+            d3.axisBottom(x)
+              .tickFormat(i => data[i].name)
+              .tickSizeOuter(0)
+          )
+
+  var yAxis = g => g.attr('transform', `translate(${margin.left},0)`)
+      .call(d3.axisLeft(y).ticks(null, data.format))
+      .call(g => g.select('.domain').remove())
+      .call(g => g.append('text')
+          .attr('x', -margin.left)
+          .attr('y', 10)
+          .attr('fill', 'currentColor')
+          .attr('text-anchor', 'start')
+          .text(data.y) )
+        
   svgChart
     .append('g')
     .attr('fill', color)
@@ -53,31 +84,8 @@ var drawChartJS = function (data) {
   svgChart.append('g').call(xAxis)
 
   svgChart.append('g').call(yAxis)
-
-  return svg.node()
 }
-xAxis = g =>
-  g.attr('transform', `translate(0,${height - margin.bottom})`).call(
-    d3
-      .axisBottom(x)
-      .tickFormat(i => data[i].name)
-      .tickSizeOuter(0)
-  )
 
-yAxis = g =>
-  g
-    .attr('transform', `translate(${margin.left},0)`)
-    .call(d3.axisLeft(y).ticks(null, data.format))
-    .call(g => g.select('.domain').remove())
-    .call(g =>
-      g
-        .append('text')
-        .attr('x', -margin.left)
-        .attr('y', 10)
-        .attr('fill', 'currentColor')
-        .attr('text-anchor', 'start')
-        .text(data.y)
-    )
 // ============================ JS implementation of the update function for the GUP example  ===================================
 var updateGUPJS = function (data) {
   var t = d3.transition().duration(750)
